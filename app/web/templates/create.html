@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}New campaign{% endblock %}
+{% block content %}
+<h1>New campaign</h1>
+
+<form class="form" x-data="createForm('{{ prefix }}')" @submit.prevent="submit">
+  <label for="name">Name</label>
+  <div class="prefixed">
+    <span class="prefix">{{ prefix }}</span>
+    <input id="name" x-model.trim="suffix" placeholder="campaign name" required autocomplete="off">
+  </div>
+
+  <label for="geo">Geo</label>
+  <input id="geo" x-model="geo" @input="geo = geo.toUpperCase()" maxlength="2"
+         placeholder="AU" required autocomplete="off" class="geo">
+
+  <label for="offer">Offer</label>
+  <div x-data="offerPicker()" x-modelable="selected" x-model="offer" class="picker">
+    {% include "_offer_picker.html" %}
+  </div>
+
+  <div></div>
+  <button type="submit" :disabled="!valid() || busy" x-text="busy ? 'Creating…' : 'Create'"></button>
+
+  <template x-if="error">
+    <div class="message error" x-text="error"></div>
+  </template>
+  <template x-if="created">
+    <div class="message success">
+      <div>Campaign <b x-text="created.name"></b> (#<span x-text="created.id"></span>) created.</div>
+      <div x-show="created.url">URL: <a :href="created.url" target="_blank" rel="noopener" x-text="created.url"></a></div>
+      <div>Flows:
+        <template x-for="s in created.streams" :key="s.id">
+          <span class="chip" x-text="`${s.name} #${s.id}`"></span>
+        </template>
+      </div>
+    </div>
+  </template>
+</form>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Editor{% endblock %}
+{% block content %}
+<div x-data="editorPage()" x-init="init()">
+  <h1>Editor</h1>
+
+  <div class="toolbar">
+    <select x-model.number="campaignId" @change="selectCampaign()" aria-label="Campaign">
+      <option value="">Select a campaign…</option>
+      <template x-for="c in campaigns" :key="c.id">
+        <option :value="c.id" x-text="`${c.name} (#${c.id})`" :selected="c.id === campaignId"></option>
+      </template>
+    </select>
+    <button @click="fetchStreams()" :disabled="!campaignId || loading">
+      <span x-text="loading ? 'Loading…' : 'Fetch streams from KT'"></span>
+    </button>
+  </div>
+
+  <div class="message error" x-show="error" x-text="error" x-cloak></div>
+
+  <template x-for="s in streams" :key="s.id">
+    <section class="stream" :class="{ dirty: dirty(s) }">
+      <div class="stream-head">
+        <div>
+          <b x-text="`Stream: ${s.name}`"></b> (#<span x-text="s.position"></span>)
+          <span class="muted" x-text="`stream_id ${s.id}`"></span>
+        </div>
+        <div class="stream-actions" x-show="dirty(s)" x-cloak>
+          <button class="primary" @click="push(s)" :disabled="s.busy" x-text="s.busy ? 'Pushing…' : 'Push to KT'"></button>
+          <button @click="cancel(s)" :disabled="s.busy">Cancel</button>
+        </div>
+      </div>
+      <div class="message error" x-show="s.error" x-text="s.error" x-cloak></div>
+      <div class="message warning" x-show="total(s) !== 100 && activeCount(s) > 0" x-cloak>
+        Active shares sum to <b x-text="total(s)"></b>%. Add, remove or bring back an offer to rebalance.
+      </div>
+
+      <table class="offers">
+        <thead>
+          <tr><th>Offer</th><th class="share">Share</th><th class="actions">Actions</th></tr>
+        </thead>
+        <tbody>
+          <template x-for="o in sorted(s)" :key="o.offer_id">
+            <tr :class="{ removed: o.removed }">
+              <td>
+                <span x-text="o.name || `Offer #${o.offer_id}`"></span>
+                <span x-show="o.removed">(removed)</span>
+              </td>
+              <td class="share">
+                <span x-text="`${o.share}%`"></span>
+                <button class="pin" :class="{ on: o.pinned }" @click="togglePin(s, o)" :disabled="o.removed || s.busy"
+                        :title="o.pinned ? 'Unpin share' : 'Pin share'" :aria-pressed="o.pinned">📌</button>
+              </td>
+              <td class="actions">
+                <button x-show="!o.removed" @click="remove(s, o)" :disabled="s.busy">Remove</button>
+                <button x-show="o.removed" @click="bringBack(s, o)" :disabled="s.busy">Bring back</button>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="s.draft.length === 0"><td colspan="3" class="muted">No offers</td></tr>
+        </tbody>
+      </table>
+
+      <div class="add-row">
+        <div x-data="offerPicker()" x-modelable="selected" x-model="s.newOffer" class="picker"
+             @offer-added.window="if ($event.detail === s.id) reset()">
+          {% include "_offer_picker.html" %}
+        </div>
+        <button @click="add(s)" :disabled="!s.newOffer || s.busy">Add</button>
+      </div>
+    </section>
+  </template>
+
+  <template x-for="s in otherStreams" :key="s.id">
+    <section class="stream readonly">
+      <div>
+        <b x-text="`Stream: ${s.name}`"></b> (#<span x-text="s.position"></span>)
+        <span class="muted" x-text="`stream_id ${s.id}`"></span>
+      </div>
+      <div class="muted">
+        <span x-text="[s.schema, s.action_type, s.action_payload].filter(Boolean).join(' · ')"></span>
+        <template x-if="s.filters.length">
+          <span x-text="` · filters: ${s.filters.join('; ')}`"></span>
+        </template>
+      </div>
+    </section>
+  </template>
+
+  <p class="muted" x-show="campaignId && !loading && !streams.length && !otherStreams.length && !error" x-cloak>
+    This campaign has no streams.
+  </p>
+</div>
+{% endblock %}

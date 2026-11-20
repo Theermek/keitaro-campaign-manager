@@ -1,0 +1,12 @@
+<input id="offer" x-model="query" @input.debounce.250ms="search" @focus="search"
+       @keydown.down.prevent="move(1)" @keydown.up.prevent="move(-1)"
+       @keydown.enter.prevent="choose(results[cursor])" @keydown.escape="open = false"
+       @click.outside="open = false"
+       placeholder="Offer id or name" autocomplete="off">
+<ul class="dropdown" x-show="open" x-cloak>
+  <template x-for="(o, i) in results" :key="o.id">
+    <li :class="{ current: i === cursor }" @mousedown.prevent="choose(o)" x-text="o.name"></li>
+  </template>
+  <li class="empty" x-show="!loading && results.length === 0">Nothing found</li>
+  <li class="empty" x-show="loading">Loading…</li>
+</ul>

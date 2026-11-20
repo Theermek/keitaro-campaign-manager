@@ -1,1 +1,12 @@
 .env
+.venv/
+__pycache__/
+*.pyc
+app.db
+.pytest_cache/
+.DS_Store
+.idea/
+
+# Materials from the task (not for the public repository)
+docs/screenshots/
+docs/editor-behavior.md
